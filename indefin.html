@@ -1,0 +1,112 @@
+<html>
+	<head>
+		<title>Independência Financeira</title>
+	<style>
+		input {
+			display: inline;
+			font: inherit;
+			padding: 0;
+			border: 0;
+			border-bottom: 1px solid lightgrey;
+			text-align: right;
+		}
+	</style>
+	</head>
+	<body>
+		<div id="montante">
+			Montante inicial: R$ <input size="12pc" type="text" value="0.00"/>
+		</div>
+		<div id="salario">
+			Renda mensal: R$ <input size="10pc" type="text" value="1000.00" />
+		</div>
+		<div id="economia">
+			Economia: <input name="abs" size="10pc" type="text" value="300.00" /> reais/mês
+			(<input name="rel" size="5pc" type="text" value="30"/>% do salário)
+		</div>
+		<div id="gastos">
+			Gastos: <input name="abs" size="10pc" type="text" value="700.00" /> reais/mês
+			(<input name="rel" size="5pc" type="text" value="70"/>% do salário)
+		</div>
+		<div id="taxa">
+			Rendimento: <input size="5pc" type="text" value="0.75" />% ao mês
+		</div>
+		<div id="inflacao">
+			Inflação: <input size="5pc" type="text" value="5.0" />% ao ano
+		</div>
+		<div>
+			Tempo até independência plena: <span id="tempo"></span>
+		</div>
+		<script>
+			$ = document.querySelector.bind(document);
+			getFloat = function(el) {
+				return Number.parseFloat(el.value) || 0.0;
+			};
+			getPercent = function(el) {
+				return getFloat(el)/100;
+			};
+			checkEconomia = function(e, salario) {
+				var economiaAbsEl = $("#economia input[name='abs']");
+				var economiaRelEl = $("#economia input[name='rel']");
+				var gastosAbsEl = $("#gastos input[name='abs']");
+				var gastosRelEl = $("#gastos input[name='rel']");
+
+				var economia = 0.0;
+				if (!e || economiaAbsEl == e.target) {
+					economia = getFloat(economiaAbsEl);
+				} else if (economiaRelEl == e.target) {
+					economia = salario * getPercent(economiaRelEl);
+				} else if (gastosAbsEl == e.target) {
+					economia = salario - getFloat(gastosAbsEl);
+				} else if (gastosRelEl == e.target) {
+					economia = salario * (1 - getPercent(gastosRelEl));
+				} else {
+					economia = getFloat(economiaAbsEl);
+				}
+				economiaAbsEl.value = economia.toFixed(2);
+				economiaRelEl.value = (economia/salario*100).toFixed(2);
+				gastosAbsEl.value = (salario - economia).toFixed(2);
+				gastosRelEl.value = (100*(1 - economia/salario)).toFixed(2);
+
+				return economia;
+			};
+			update = function(e) {
+				var montante = getFloat($("#montante input"));
+				var salario = getFloat($("#salario input"));
+				var economia = checkEconomia(e, salario);
+				var gastos = salario - economia;
+				var taxa = getPercent($("#taxa input"));
+				var inflacaoAoAno = getPercent($("#inflacao input"));
+				var inflacaoAoMes = Math.pow(1+inflacaoAoAno, 1.0/12)-1;
+
+				console.log(montante, salario, economia, taxa, inflacaoAoMes);
+
+				var i = 0;
+				var maxIter = 1000;
+				for (; i < maxIter; i++) {
+					var rendimento = taxa * montante;
+					montante += rendimento + economia;
+					gastos *= (1 + inflacaoAoMes);
+					if (rendimento > gastos) {
+						break;
+					}
+					console.log(i, montante, gastos, rendimento);
+				}
+				if (i == maxIter) {
+					$("#tempo").textContent = "Nunca";
+				} else {
+					var anos = (i / 12)|0;
+					var meses = i % 12;
+					$("#tempo").textContent = anos + " anos e " + meses + " meses";
+				}
+			};
+			$("#montante").addEventListener("change", update);
+			$("#salario").addEventListener("change", update);
+			$("#gastos").addEventListener("change", update);
+			$("#economia").addEventListener("change", update);
+			$("#taxa").addEventListener("change", update);
+			$("#inflacao").addEventListener("change", update);
+			update();
+		</script>
+	</body>
+</html>
+
